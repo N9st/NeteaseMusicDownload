@@ -6,6 +6,8 @@ namespace NeteaseMusicDownloadWinForm.Utility
 {
     class Search
     {
+        //按照表格的顺序保存歌曲的Id
+        public static readonly List<string> SongIdList = new List<string>();
         //通过网易云获取音乐信息
         public static async Task<JsonNode> GetSongs(string searchWord)
         {

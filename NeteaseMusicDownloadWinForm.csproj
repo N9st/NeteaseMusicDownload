@@ -98,35 +98,35 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MainForm.cs">
+    <Compile Include="Forms\MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="MainForm.Designer.cs">
+    <Compile Include="Forms\MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="LoginForm.cs">
+    <Compile Include="Forms\LoginForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="LoginForm.Designer.cs">
+    <Compile Include="Forms\LoginForm.Designer.cs">
       <DependentUpon>LoginForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="TipForm.cs">
+    <Compile Include="Forms\TipForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="TipForm.Designer.cs">
+    <Compile Include="Forms\TipForm.Designer.cs">
       <DependentUpon>TipForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="Utility\Crypto.cs" />
-    <Compile Include="Utility\Download.cs" />
-    <Compile Include="Utility\Http.cs" />
-    <Compile Include="Utility\Login.cs" />
+    <Compile Include="Utils\Crypto.cs" />
+    <Compile Include="Utils\Download.cs" />
+    <Compile Include="Utils\Http.cs" />
+    <Compile Include="Utils\Login.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Utility\Search.cs" />
-    <EmbeddedResource Include="LoginForm.resx">
+    <Compile Include="Utils\Search.cs" />
+    <EmbeddedResource Include="Forms\LoginForm.resx">
       <DependentUpon>LoginForm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="MainForm.resx">
+    <EmbeddedResource Include="Forms\MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -139,7 +139,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <EmbeddedResource Include="TipForm.resx">
+    <EmbeddedResource Include="Forms\TipForm.resx">
       <DependentUpon>TipForm.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="packages.config" />

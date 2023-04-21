@@ -12,14 +12,13 @@ namespace NeteaseMusicDownloadWinForm.Utility
 {
     class Http
     {
-        //用于储存登录之后的cookie
-        public static string Cookie = null;
         private static readonly HttpClientHandler HttpClientHandler = new HttpClientHandler()
         {
             //不自动使用cookie
             UseCookies = false,
             //同一时间最大连接数
             MaxConnectionsPerServer = 5,
+            
         };
         private static readonly HttpClient HttpClient = new HttpClient(HttpClientHandler);
         private static HttpResponseMessage httpResponseMessage;
@@ -98,8 +97,7 @@ namespace NeteaseMusicDownloadWinForm.Utility
             }
             string MUSIC_U = cookieResult.Where(x => x.Contains("MUSIC_U")).First().ToString().Substring(8,160);
             string __csrf = cookieResult.Where(x => x.Contains("__csrf")).First().ToString().Substring(7, 32);
-            string returnResult = $"{{\n  \"MUSIC_U\": \"{MUSIC_U}\",\n  \"__csrf\": \"{__csrf}\"\n}}";
-            return returnResult;
+            return $"{{\n  \"MUSIC_U\": \"{MUSIC_U}\",\n  \"__csrf\": \"{__csrf}\"\n}}";
         }
         //设置请求头
         private static void SetRequestHeaders()
@@ -109,35 +107,7 @@ namespace NeteaseMusicDownloadWinForm.Utility
             string UserAgent = @"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 Edg/112.0.1722.39";
             //添加请求头
             HttpClient.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-            //文件不存在，就直接return
-            if (!File.Exists(Login.ConfigPath) & Cookie == null)
-            {
-                return;
-            }
-            //这里是想不要经常读文件
-            if (Cookie != null)
-            {
-                HttpClient.DefaultRequestHeaders.Add("Cookie", Cookie);
-            }
-            else
-            {
-                //解析json数据
-                try
-                {
-                    JsonNode jsonNode = JsonNode.Parse(File.ReadAllText(Login.ConfigPath));
-                    Cookie = "os=pc; " +
-                        "__remember_me=true; " +
-                        $"MUSIC_U={jsonNode["MUSIC_U"]}; " +
-                        $"__csrf={jsonNode["__csrf"]}; " +
-                        "appver=2.10.8.200945; ";
-                    //添加cookie
-                    HttpClient.DefaultRequestHeaders.Add("Cookie", Cookie);
-                }
-                catch (Exception)
-                {
-                    //没啥可写的，就是想避免解析json数据出错
-                }
-            }
+            HttpClient.DefaultRequestHeaders.Add("Cookie", Login.Cookie);
         }
         //析构函数，释放HttpClient，会不会执行俺也不知道
         ~Http()

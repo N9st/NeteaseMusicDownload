@@ -6,6 +6,7 @@ using ZXing.QrCode;
 using System.Text.Json.Nodes;
 using System;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace NeteaseMusicDownloadWinForm.Utility
 {
@@ -15,6 +16,13 @@ namespace NeteaseMusicDownloadWinForm.Utility
         private static string UniKey = null;
         //Cookie保存位置
         public static readonly string ConfigPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\NeteaseCookie.json";
+        //用于储存登录之后的cookie
+        public static string Cookie = null;
+        //静态构造函数，自动获取保存在本地的Cookie，全局只会自动执行一次
+        static Login()
+        {
+            ReadCookie();
+        }
         //获取生成二维码需要用的key
         public static async Task<string> GetLoginKey()
         {
@@ -88,16 +96,40 @@ namespace NeteaseMusicDownloadWinForm.Utility
         {
             //存在访问失败的可能，解决办法，重新打开软件重新登录咯
             string respResult = await Http.Get<string>(@"https://music.163.com") ?? "";
-            int userNameStartNum = respResult.IndexOf("nickname:\"");
-            int userNameEndNum = respResult.IndexOf("\",avatarUr");
-            //Cookie有可能会过期，导致找不到nickname，就会返回-1
-            if (userNameStartNum == -1 | userNameEndNum == -1)
+            //子表达式
+            Match match = Regex.Match(respResult, @"nickname:""(?<nickname>(.*?))""");
+            if (match.Success)
             {
-                return null;
+                return $"欢迎登录，{match.Groups["nickname"].Value}，如遇下载失败，请多试几次";
             }
-            //找到则正常返回
-            return respResult.Substring(userNameStartNum + "nickname:\"".Length, 
-                userNameEndNum - userNameStartNum - "\",avatarUr".Length);
+            else
+            {
+                return "尚未登录，请点击登录";
+            }
+        }
+        //读取本地的cookie
+        public static void ReadCookie()
+        {
+            //文件不存在，就直接return
+            if (!File.Exists(Login.ConfigPath))
+            {
+                return;
+            }
+            //解析json数据
+            try
+            {
+                JsonNode jsonNode = JsonNode.Parse(File.ReadAllText(Login.ConfigPath));
+                Cookie = "os=pc; " +
+                    "__remember_me=true; " +
+                    $"MUSIC_U={jsonNode["MUSIC_U"]}; " +
+                    $"__csrf={jsonNode["__csrf"]}; " +
+                    "appver=2.10.8.200945; ";
+            }
+            //解析出错还是Cookie还是null
+            catch (Exception)
+            {
+                Cookie = null;
+            }
         }
     }
 }

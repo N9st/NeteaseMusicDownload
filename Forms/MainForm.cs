@@ -11,13 +11,11 @@ namespace NeteaseMusicDownloadWinForm
 {
     public partial class MainForm : UIForm
     {
-        //按照表格的顺序保存歌曲的Id
-        private static readonly List<string> SongIdList = new List<string>();
-        //歌曲的保存路径
-        private static readonly string SavePath = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
+        //告诉大家默认保存地址
         public MainForm()
         {
             InitializeComponent();
+            downloadPathLabel.Text = $"默认保存地址：{Download.SavePath}";
         }
         //加载登录界面，监听是否登录成功；或者加载退出登录界面
         private void LoginButtonClick(object sender, EventArgs e)
@@ -30,7 +28,7 @@ namespace NeteaseMusicDownloadWinForm
             {
                 LoginForm loginForm = new LoginForm();
                 //监控是否登录成功，登录成功去获取用户名
-                loginForm.FinishLoginEvent += new LoginForm.FinishLogin(GetUserName);
+                loginForm.FinishLoginEvent += new LoginForm.FinishLogin(MainForm_Load);
                 //加载loginForm
                 loginForm.ShowDialog();
             }
@@ -45,33 +43,39 @@ namespace NeteaseMusicDownloadWinForm
         {
             WindowState = FormWindowState.Minimized;
         }
-        //尝试获取用户名（自动登录），告诉大家默认下载地址
+        //尝试获取用户名（自动登录）
         private async void MainForm_Load(object sender, EventArgs e)
         {
-            await GetUserName();
-            downloadPathLabel.Text = $"默认下载地址：{SavePath}";
+            loginButton.Text = await Login.ReturnUserName();
         }
         //开始搜索
         private async void SearchButton_Click(object sender, EventArgs e)
         {
             if (loginButton.Text.Contains("尚未登录"))
             {
-                N9stTip("请先扫码登录网易云音乐");
+                N9stTip("请先扫码登录网易云音乐！");
                 LoginButtonClick(new object(), new EventArgs());
+                return;
+            }
+            if(wordTextBox.Text == string.Empty)
+            {
+                N9stTip("请输入要搜索的内容！");
                 return;
             }
             //清空所有行，除标题行
             uiDataGridView1.ClearRows();
+            //清空歌曲Id List
+            Search.SongIdList.Clear();
             JsonNode jsonNode = await Search.GetSongs(wordTextBox.Text);
             //网易云偶尔返回null
             if (jsonNode == null)
             {
-                searchResultLabel.Text = "搜索失败\n请稍后再试";
+                searchResultLabel.Text = "搜索失败，请稍后再试";
                 return;
             }
             //判断一下多少首歌曲
             string songCount = jsonNode["result"]["songCount"].ToString();
-            searchResultLabel.Text = $"共有{songCount}首歌曲符合搜索要求\n只显示前30首";
+            searchResultLabel.Text = $"共有{songCount}首歌曲符合搜索要求，只显示前30首";
             if (songCount == "0") 
             {
                 return;
@@ -89,7 +93,7 @@ namespace NeteaseMusicDownloadWinForm
                     jsonNode["result"]["songs"][i]["name"].ToString(),
                     jsonNode["result"]["songs"][i]["al"]["name"].ToString(), " ");
                 //将歌曲ID也储存起来
-                SongIdList.Add(jsonNode["result"]["songs"][i]["id"].ToString());
+                Search.SongIdList.Add(jsonNode["result"]["songs"][i]["id"].ToString());
             }
         }
         //监听回车键是否被按下
@@ -113,7 +117,7 @@ namespace NeteaseMusicDownloadWinForm
             //下载状态
             string downloadStatus = uiDataGridView1.Rows[selectRow].Cells[4].Value.ToString();
             //拼接文件名称（保存路径+歌手名称+歌曲名称）
-            string fileName = $"{SavePath}\\{author.Replace("/",",")}" + $"-{songName}";
+            string fileName = $"{Download.SavePath}\\{author.Replace("/",",")}" + $"-{songName}";
             //判断是否正在下载或已经下载完成
             if (downloadStatus == "开始下载" | downloadStatus.Contains("下载中"))
             {
@@ -131,62 +135,54 @@ namespace NeteaseMusicDownloadWinForm
             var process = new Progress<double>(percent =>
             {
                 percent *= 100;
-                uiDataGridView1.Rows[selectRow].Cells[4].Value = $"下载中...{percent:0}%";
-                if ($"{percent:0}" == "100")
+                //超时判断
+                if ($"{percent:0}" == "-1")
+                {
+                    uiDataGridView1.Rows[selectRow].Cells[4].Value = $"下载失败";
+                }
+                else if ($"{percent:0}" == "100")
                 {
                     uiDataGridView1.Rows[selectRow].Cells[4].Value = $"下载完成";
                 }
-            });
-            try
-            {
-                await Task.Run(async () =>
+                else
                 {
-                    //异步获取下载链接
-                    string downloadLink = await Download.GetLink(SongIdList[selectRow]);
-                    //没有会员，会员专属的歌曲是获取不到下载链接的，又或者网易云偶尔返回null
-                    if (downloadLink == null)
-                    {
-                        uiDataGridView1.Rows[selectRow].Cells[4].Value = "下载链接为null";
-                        return;
-                    }
-                    //判断歌曲的格式
-                    string fileFormat = downloadLink.EndsWith(".flac") ? "flac" : "mp3";
-                    //判断文件是否存在，存在就增加副本
-                    while (File.Exists(fileName + "." + fileFormat))
-                    {
-                        fileName += "-副本";
-                    }
-                    //异步下载
-                    await Download.Save(downloadLink, fileName + "." + fileFormat, process);
-                });
-            }
-            catch (Exception)
+                    uiDataGridView1.Rows[selectRow].Cells[4].Value = $"下载中...{percent:0}%";
+                }
+            });
+            await Task.Run(async () =>
             {
-                uiDataGridView1.Rows[selectRow].Cells[4].Value = "下载失败";
-            }
-        }
-        //获取登录之后的用户名
-        private async Task GetUserName()
-        {
-            string userName = await Login.ReturnUserName();
-            if (File.Exists(Login.ConfigPath) & userName != null)
-            {
-                loginButton.Text = $"欢迎登录，{userName}，如遇下载失败，请多试几次";
-            }
-            else
-            {
-                //cookie不存在（第一次登录、手动退出登录）或者过期
-                loginButton.Text = "尚未登录，请点击登录";
-            }
+                //异步获取下载链接
+                string downloadLink = await Download.GetLink(Search.SongIdList[selectRow]);
+                //没有会员，会员专属的歌曲是获取不到下载链接的，又或者网易云偶尔返回null
+                if (downloadLink == null)
+                {
+                    uiDataGridView1.Rows[selectRow].Cells[4].Value = "下载链接为null";
+                    return;
+                }
+                //判断歌曲的格式
+                string fileFormat = downloadLink.EndsWith(".flac") ? "flac" : "mp3";
+                //判断文件是否存在，存在就增加副本
+                while (File.Exists(fileName + "." + fileFormat))
+                {
+                    fileName += "-副本";
+                }
+                //异步下载
+                await Download.Save(downloadLink, fileName + "." + fileFormat, process);
+            });
         }
         //弹出提示框
         private void N9stTip(string tipText)
         {
             TipForm tipForm = new TipForm(tipText);
             if (tipText.Contains("退出"))
-            {
+            { 
                 //监控是否成功退出登录
-                tipForm.ExitLoginEvent += new TipForm.ExitLogin(GetUserName);
+                tipForm.ExitLoginEvent += new TipForm.ExitLogin(MainForm_Load);
+            }
+            else
+            {
+                //修改TipForm的样式
+                tipForm.OkForm();
             }
             tipForm.ShowDialog();
         }

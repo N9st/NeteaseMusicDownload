@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
@@ -114,7 +115,15 @@ namespace NeteaseMusicDownloadWinForm.Utility
             //创建解密对象
             var cryptor = aes.CreateDecryptor();
             //开始转换，依次是需解密的内容、偏移量、内容的长度
-            byte[] byteDecrypted = cryptor.TransformFinalBlock(byteContent, 0, byteContent.Length);
+            byte[] byteDecrypted = null;
+            try
+            {
+                byteDecrypted = cryptor.TransformFinalBlock(byteContent, 0, byteContent.Length);
+            }
+            catch(Exception ex)
+            {
+                Trace.WriteLine(ex);
+            }
             //释放资源
             cryptor.Dispose();
             //返回UTF8编码后的字符串

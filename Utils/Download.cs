@@ -10,6 +10,8 @@ namespace NeteaseMusicDownloadWinForm.Utility
 {
     class Download
     {
+        //歌曲的保存路径
+        public static readonly string SavePath = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
         //获取下载链接
         public static async Task<string> GetLink(string songId)
         {
@@ -22,6 +24,7 @@ namespace NeteaseMusicDownloadWinForm.Utility
             };
             //返回byte[]类型的内容
             byte[] respResult = await Http.Post<byte[]>(url, postDatas);
+            if (respResult == null) { return null; }
             //有可能网易云返回空，也有可能jsonNode["data"]["url"].ToString()为空
             try
             {
@@ -38,8 +41,12 @@ namespace NeteaseMusicDownloadWinForm.Utility
         public static async Task Save(string downloadUrl, string fileName, IProgress<double> process)
         {
             //以stream方式网页内容
-            Stream stream = await Http.Get<Stream>(downloadUrl) 
-                ?? throw new NullReferenceException(nameof(stream));
+            Stream stream = await Http.Get<Stream>(downloadUrl);
+            if (stream == null) 
+            {
+                process.Report(-0.01);
+                return;  
+            }
             //文件大小
             long fileSize = stream.Length ;
             //新建filename文件
