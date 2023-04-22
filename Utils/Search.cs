@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using System.Text.Json.Nodes;
 
-namespace NeteaseMusicDownloadWinForm.Utility
+namespace NeteaseMusicDownloadWinForm.Utils
 {
     class Search
     {
@@ -13,7 +13,7 @@ namespace NeteaseMusicDownloadWinForm.Utility
         {
             //搜索的url
             string searchUrl = @"https://music.163.com/weapi/cloudsearch/get/web";
-            //需要加密的数据
+            //需要加密的数据，limit:30，默认返回30首歌曲
             string needEncryptContent = "{\"hlpretag\":\"<span class=\\\"s-fc7\\\">\",\"hlposttag\":\"</span>\",\"id\":\"3778678\",\"s\":\"" +
                        $"{searchWord}" +
                        "\",\"type\":\"1\",\"offset\":\"0\",\"total\":\"true\",\"limit\":\"30\",\"csrf_token\":\"\"}";

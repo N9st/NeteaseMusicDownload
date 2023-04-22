@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.IO;
-using NeteaseMusicDownloadWinForm.Utility;
+using NeteaseMusicDownloadWinForm.Utils;
 using Sunny.UI;
 
 namespace NeteaseMusicDownloadWinForm
@@ -25,7 +25,7 @@ namespace NeteaseMusicDownloadWinForm
             //禁用取消按钮
             uiButton2.Enabled = false;
             //拉长确定按钮
-            uiButton1.Size = new Size(386, 52);
+            uiButton1.Size = new Size(375, 52);
         }
         //关闭提示框
         private void CloseButton_Click(object sender, EventArgs e)

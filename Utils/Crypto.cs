@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace NeteaseMusicDownloadWinForm.Utility
+namespace NeteaseMusicDownloadWinForm.Utils
 {
     class Crypto
     {

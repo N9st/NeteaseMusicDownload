@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Sunny.UI;
-using NeteaseMusicDownloadWinForm.Utility;
+using NeteaseMusicDownloadWinForm.Utils;
 using System.IO;
 using System.Text.Json.Nodes;
 using System.Collections.Generic;
@@ -11,6 +11,8 @@ namespace NeteaseMusicDownloadWinForm
 {
     public partial class MainForm : UIForm
     {
+        //记录歌曲的下载状态
+        private static readonly Dictionary<string, string> DownloadStatusDict = new Dictionary<string, string>();
         //告诉大家默认保存地址
         public MainForm()
         {
@@ -88,12 +90,17 @@ namespace NeteaseMusicDownloadWinForm
                 {
                     author += item["name"].ToString() + "/";
                 }
+                //歌曲Id
+                string songId = jsonNode["result"]["songs"][i]["id"].ToString();
+                //将歌曲ID也储存起来
+                Search.SongIdList.Add(songId);
+                //获取歌曲的下载状态，获取不到初始化为""
+                string downloadStatus =
+                    DownloadStatusDict.TryGetValue(songId, out downloadStatus) == true ? downloadStatus : "";
                 //依次是歌手名称、歌曲名称、专辑名称
                 uiDataGridView1.AddRow(i + 1, author.TrimEnd('/'),
                     jsonNode["result"]["songs"][i]["name"].ToString(),
-                    jsonNode["result"]["songs"][i]["al"]["name"].ToString(), " ");
-                //将歌曲ID也储存起来
-                Search.SongIdList.Add(jsonNode["result"]["songs"][i]["id"].ToString());
+                    jsonNode["result"]["songs"][i]["al"]["name"].ToString(), downloadStatus);
             }
         }
         //监听回车键是否被按下
@@ -115,7 +122,7 @@ namespace NeteaseMusicDownloadWinForm
             //歌曲名称
             string songName = uiDataGridView1.Rows[selectRow].Cells[2].Value.ToString();
             //下载状态
-            string downloadStatus = uiDataGridView1.Rows[selectRow].Cells[4].Value.ToString();
+            string downloadStatus = uiDataGridView1.Rows[selectRow].Cells[4].Value?.ToString();
             //拼接文件名称（保存路径+歌手名称+歌曲名称）
             string fileName = $"{Download.SavePath}\\{author.Replace("/",",")}" + $"-{songName}";
             //判断是否正在下载或已经下载完成
@@ -129,34 +136,35 @@ namespace NeteaseMusicDownloadWinForm
                 N9stTip($"{author}-{songName}\n已经下载完成！");
                 return;
             }
-            //开始下载
+            //歌曲Id
+            string songId = Search.SongIdList[selectRow];
+            //开始下载，记录歌曲的下载状态
             uiDataGridView1.Rows[selectRow].Cells[4].Value = "开始下载";
+            DownloadStatusDict[songId] = "开始下载";
             //开始下载，报告进度
             var process = new Progress<double>(percent =>
             {
                 percent *= 100;
-                //超时判断
-                if ($"{percent:0}" == "-1")
+                //下载情况汇报
+                DownloadStatusDict[songId] = $"{percent:0}" == "-1" ?
+                "下载失败" : $"{percent:0}" == "100" ? "下载完成" : $"下载中...{percent:0}%";
+                //歌曲所在行，如果你重新搜索了歌曲，某一首歌曲所在行的位置可能会发生改变，通过唯一的歌曲Id定位所在行
+                int songRow = Search.SongIdList.IndexOf(songId);
+                //-1，就是重新搜索后，歌曲id不在新的列表中
+                if (songRow != -1)
                 {
-                    uiDataGridView1.Rows[selectRow].Cells[4].Value = $"下载失败";
-                }
-                else if ($"{percent:0}" == "100")
-                {
-                    uiDataGridView1.Rows[selectRow].Cells[4].Value = $"下载完成";
-                }
-                else
-                {
-                    uiDataGridView1.Rows[selectRow].Cells[4].Value = $"下载中...{percent:0}%";
+                    uiDataGridView1.Rows[songRow].Cells[4].Value = DownloadStatusDict[songId];
                 }
             });
             await Task.Run(async () =>
             {
                 //异步获取下载链接
-                string downloadLink = await Download.GetLink(Search.SongIdList[selectRow]);
+                string downloadLink = await Download.GetLink(songId);
                 //没有会员，会员专属的歌曲是获取不到下载链接的，又或者网易云偶尔返回null
                 if (downloadLink == null)
                 {
                     uiDataGridView1.Rows[selectRow].Cells[4].Value = "下载链接为null";
+                    DownloadStatusDict[songId] = "下载链接为null";
                     return;
                 }
                 //判断歌曲的格式
@@ -164,7 +172,7 @@ namespace NeteaseMusicDownloadWinForm
                 //判断文件是否存在，存在就增加副本
                 while (File.Exists(fileName + "." + fileFormat))
                 {
-                    fileName += "-副本";
+                    fileName += " - 副本";
                 }
                 //异步下载
                 await Download.Save(downloadLink, fileName + "." + fileFormat, process);
@@ -185,6 +193,11 @@ namespace NeteaseMusicDownloadWinForm
                 tipForm.OkForm();
             }
             tipForm.ShowDialog();
+        }
+        //打开下载文件夹
+        private void DownloadPathLabel_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start(Download.SavePath);
         }
     }
 }

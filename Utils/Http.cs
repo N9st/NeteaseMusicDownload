@@ -8,7 +8,7 @@ using Sunny.UI;
 using System.Linq;
 using System.IO;
 
-namespace NeteaseMusicDownloadWinForm.Utility
+namespace NeteaseMusicDownloadWinForm.Utils
 {
     class Http
     {

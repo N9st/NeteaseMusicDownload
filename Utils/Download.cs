@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 
-namespace NeteaseMusicDownloadWinForm.Utility
+namespace NeteaseMusicDownloadWinForm.Utils
 {
     class Download
     {

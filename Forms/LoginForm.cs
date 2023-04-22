@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Sunny.UI;
-using NeteaseMusicDownloadWinForm.Utility;
+using NeteaseMusicDownloadWinForm.Utils;
 using System.Threading;
 
 namespace NeteaseMusicDownloadWinForm
