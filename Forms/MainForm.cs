@@ -70,19 +70,10 @@ namespace NeteaseMusicDownloadWinForm
             Search.SongIdList.Clear();
             JsonNode jsonNode = await Search.GetSongs(wordTextBox.Text);
             //网易云偶尔返回null
-            if (jsonNode == null)
-            {
-                searchResultLabel.Text = "搜索失败，请稍后再试";
-                return;
-            }
-            //判断一下多少首歌曲
-            string songCount = jsonNode["result"]["songCount"].ToString();
-            searchResultLabel.Text = $"共有{songCount}首歌曲符合搜索要求，只显示前30首";
-            if (songCount == "0") 
-            {
-                return;
-            }
-            for (int i = 0; i < jsonNode["result"]["songs"].AsArray().Count; i++)
+            //获取歌曲数量
+            string songCount = jsonNode["result"]["songCount"]?.ToString();
+            searchResultLabel.Text = songCount == null ? "搜索失败，请稍后再试" : $"共有{songCount}首歌曲符合搜索要求，只显示前30首";
+            for (int i = 0; i < jsonNode["result"]["songs"]?.AsArray()?.Count; i++)
             {
                 //有些歌，歌手比较多，拼接一下
                 string author = null;
@@ -97,7 +88,7 @@ namespace NeteaseMusicDownloadWinForm
                 //获取歌曲的下载状态，获取不到初始化为""
                 string downloadStatus =
                     DownloadStatusDict.TryGetValue(songId, out downloadStatus) == true ? downloadStatus : "";
-                //依次是歌手名称、歌曲名称、专辑名称
+                //依次是歌手名称、歌曲名称、专辑名称、下载状态
                 uiDataGridView1.AddRow(i + 1, author.TrimEnd('/'),
                     jsonNode["result"]["songs"][i]["name"].ToString(),
                     jsonNode["result"]["songs"][i]["al"]["name"].ToString(), downloadStatus);

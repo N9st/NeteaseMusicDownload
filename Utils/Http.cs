@@ -18,7 +18,6 @@ namespace NeteaseMusicDownloadWinForm.Utils
             UseCookies = false,
             //同一时间最大连接数
             MaxConnectionsPerServer = 5,
-            
         };
         private static readonly HttpClient HttpClient = new HttpClient(HttpClientHandler);
         private static HttpResponseMessage httpResponseMessage;

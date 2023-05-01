@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
@@ -25,15 +24,15 @@ namespace NeteaseMusicDownloadWinForm.Utils
         //获取aesSecondKey，这个方法完全模仿网易云的js写，当然有非常简单的方式可以实现一样的效果
         public static string ReturnAesSecondKey()
         {
-            string aesSecondKey = null;
+            string aesSecondKey = string.Empty;
             Random rnd = new Random();
             string b = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             for (int j = 0; 16 > j; j++)
             {
                 //rnd.NextDouble()获取double的0-1之间的数，不包括1
-                dynamic e = rnd.NextDouble() * b.Length;
+                double e = rnd.NextDouble() * b.Length;
                 //Floor舍去小数点后的所有数
-                e = Math.Floor(float.Parse(e.ToString()));
+                e = Math.Floor(e);
                 //字符串拼接
                 aesSecondKey += b[(int)e];
             }
@@ -50,7 +49,7 @@ namespace NeteaseMusicDownloadWinForm.Utils
                 "5cce10b424d813cfe4875d3e82047b97ddef52741d546b8e289dc6935b3ece046" +
                 "2db0a22b8e7";
             //字符串password翻转
-            string password = new string(aesSecondKey.ToCharArray().Reverse().ToArray());
+            string password = new string(aesSecondKey.Reverse().ToArray());
             //将字符串转换为十六进制
             password = BitConverter.ToString(Encoding.UTF8.GetBytes(password)).Replace("-", "");
             //将十六进制转换为十进制
@@ -59,12 +58,8 @@ namespace NeteaseMusicDownloadWinForm.Utils
             BigInteger bigPassword = BigInteger.Parse(password, NumberStyles.HexNumber);
             //bigPassword的bigModulus次方 % bigExponent  （求模）
             string encSecKey = BigInteger.ModPow(bigPassword, bigExponent, bigModulus).ToString("x");
-            //ToString("x")十六进制字母开头的会自己在前面加个“0”，所以去除
-            if (encSecKey.Length == 257)
-            {
-                encSecKey = encSecKey.Remove(0, 1);
-            }
-            return encSecKey;
+            //ToString("x")十六进制字母开头的会自己在前面加个“0”，所以跳过
+            return new string(encSecKey.SkipWhile(x => x == '0').Take(256).ToArray());
         }
         //获取参数Eapi-Params
         public static string ReturnEapiParams(string songId)
@@ -91,13 +86,10 @@ namespace NeteaseMusicDownloadWinForm.Utils
                 "osver\\\":\\\"Microsoft-Windows-10-Home-China-build-22621-64bit\\\",\\\"" +
                 "Nm-GCore-Status\\\":\\\"1\\\"}\" }";
             //需提交的数据（未加密）
-            string message = "nobody" +
-                "/api/song/enhance/download/url/v1" +
-                "use" + text + "md5forencrypt";
-            string data = "/api/song/enhance/download/url/v1" +
-                "-36cd479b6b5-" +
-                $"{text}" +
-                "-36cd479b6b5-" +
+            string message = "nobody" + "/api/song/enhance/download/url/v1" + "use" + 
+                text + "md5forencrypt";
+            string data = "/api/song/enhance/download/url/v1" + "-36cd479b6b5-" +
+                $"{text}" + "-36cd479b6b5-" +
                 $"{MD5Encrypt(message)}";
             //先Aes-ECB加密，然后返回十六进制的字符串，把“-”删了
             return BitConverter.ToString(AesEncrypt(data, EapiKey, "ecb")).Replace("-", "");
@@ -113,35 +105,36 @@ namespace NeteaseMusicDownloadWinForm.Utils
             //赋值Key
             aes.Key = byteKey;
             //创建解密对象
-            var cryptor = aes.CreateDecryptor();
+            ICryptoTransform cryptor = aes.CreateDecryptor();
             //开始转换，依次是需解密的内容、偏移量、内容的长度
-            byte[] byteDecrypted = null;
+            byte[] byteDecrypted;
             try
             {
                 byteDecrypted = cryptor.TransformFinalBlock(byteContent, 0, byteContent.Length);
             }
-            catch(Exception ex)
+            catch(Exception)
             {
-                Trace.WriteLine(ex);
+                return null;
             }
-            //释放资源
-            cryptor.Dispose();
+            finally
+            {
+                //释放资源
+                cryptor.Dispose();
+            }
             //返回UTF8编码后的字符串
             return Encoding.UTF8.GetString(byteDecrypted);
         }
         //小写32位的md5加密
         private static string MD5Encrypt(string password)
         {
-            //Used to store results
-            string pwd = "";
-            //大写MD5（X2）或者小写MD5（x2）
-            string pwdFormat = "x2";
+            string pwd = string.Empty;
             byte[] temp = Encoding.UTF8.GetBytes(password);
             MD5 md5 = MD5.Create();
             byte[] result = md5.ComputeHash(temp);
             for (int i = 0; i < result.Length; i++)
             {
-                pwd += result[i].ToString(pwdFormat);
+                //大写MD5（X2）或者小写MD5（x2）
+                pwd += result[i].ToString("x2");
             }
             return pwd;
         }
@@ -171,7 +164,7 @@ namespace NeteaseMusicDownloadWinForm.Utils
             //赋值Key
             aes.Key = byteKey;
             //创建加密对象
-            var crypto = aes.CreateEncryptor();
+            ICryptoTransform crypto = aes.CreateEncryptor();
             //开始转换，依次是需加密的内容、偏移量、内容的长度
             byte[] byteEncrypted = crypto.TransformFinalBlock(byteContent, 0, byteContent.Length);
             //释放资源

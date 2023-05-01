@@ -24,18 +24,10 @@ namespace NeteaseMusicDownloadWinForm.Utils
             };
             //返回byte[]类型的内容
             byte[] respResult = await Http.Post<byte[]>(url, postDatas);
-            if (respResult == null) { return null; }
             //有可能网易云返回空，也有可能jsonNode["data"]["url"].ToString()为空
-            try
-            {
-                Trace.WriteLine(Crypto.AesDecrypt(respResult));
-                JsonNode jsonNode = JsonNode.Parse(Crypto.AesDecrypt(respResult));
-                return jsonNode["data"]["url"]?.ToString();
-            }
-            catch (Exception)
-            {
-                return null;
-            }
+            JsonNode jsonNode = N9stJson.Parse(Crypto.AesDecrypt(respResult));
+            Trace.WriteLine(jsonNode);
+            return jsonNode["data"]["url"]?.ToString();
         }
         //下载音乐
         public static async Task Save(string downloadUrl, string fileName, IProgress<double> process)
@@ -63,7 +55,7 @@ namespace NeteaseMusicDownloadWinForm.Utils
                 //写入buffer数组的数据，从位置0开始写，bytesRead为读取的实际大小
                 output.Write(buffer, 0, bytesRead);
                 //每次写入都增加进度，两个整数型相除会自动取整，所以要*1.0，这里是大坑
-                progress = bytesRead * 1.0 / fileSize + progress;
+                progress = (bytesRead * 1.0 / fileSize) + progress;
                 //下这么快干嘛？做点节目效果吧
                 Thread.Sleep(100);
                 //报告进度
@@ -73,6 +65,8 @@ namespace NeteaseMusicDownloadWinForm.Utils
             output.Flush();
             //关闭文件流
             output.Close();
+            //释放文件流
+            output.Dispose();
         }
     }
 }

@@ -44,7 +44,7 @@ namespace NeteaseMusicDownloadWinForm.Utils
             UniKey = jsonNode?["unikey"]?.ToString();
             return UniKey;
         }
-        //检查二维码的状态，是否过期、是否被扫描、是否授权中，处于授权中顺便获取用户名
+        //检查二维码的状态，是否过期、是否被扫描、是否授权中
         public static async Task<string> CheckQrCodeStatus()
         {
             //post访问的url
@@ -116,20 +116,12 @@ namespace NeteaseMusicDownloadWinForm.Utils
                 return;
             }
             //解析json数据
-            try
-            {
-                JsonNode jsonNode = JsonNode.Parse(File.ReadAllText(Login.ConfigPath));
-                Cookie = "os=pc; " +
-                    "__remember_me=true; " +
-                    $"MUSIC_U={jsonNode["MUSIC_U"]}; " +
-                    $"__csrf={jsonNode["__csrf"]}; " +
-                    "appver=2.10.8.200945; ";
-            }
-            //解析出错还是Cookie还是null
-            catch (Exception)
-            {
-                Cookie = null;
-            }
+            JsonNode jsonNode = N9stJson.Parse(File.ReadAllText(Login.ConfigPath));
+            Cookie = jsonNode != null ? "os=pc; " +
+                "__remember_me=true; " +
+                $"MUSIC_U={jsonNode["MUSIC_U"]}; " +
+                $"__csrf={jsonNode["__csrf"]}; " +
+                "appver=2.10.8.200945; " : null;
         }
     }
 }
